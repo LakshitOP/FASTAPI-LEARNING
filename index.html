@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Image Upload</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+            width: 350px;
+
+            text-align: center;
+
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        input {
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: black;
+            color: white;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        #preview {
+            max-width: 100%;
+
+            margin-top: 20px;
+
+            border-radius: 10px;
+
+            display: none;
+        }
+
+        #message {
+            margin-top: 15px;
+        }
+
+        #file-list {
+            margin-top: 20px;
+        }
+
+        .file {
+            margin-top: 20px;
+
+            padding: 10px;
+
+            border-radius: 10px;
+
+            background: #f5f5f5;
+        }
+
+        .file img {
+            width: 200px;
+
+            max-width: 100%;
+
+            border-radius: 10px;
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <h2>📷 Upload an Image</h2>
+
+
+        <!-- Select image -->
+
+        <input
+            type="file"
+            id="imageInput"
+            accept="image/*"
+        >
+
+        <br>
+
+
+        <!-- Upload button -->
+
+        <button onclick="uploadImage()">
+            Upload
+        </button>
+
+
+        <!-- Local preview -->
+
+        <img id="preview">
+
+
+        <p id="message"></p>
+
+
+        <hr>
+
+
+        <h3>Uploaded Images</h3>
+
+
+        <!-- Images from ImageKit -->
+
+        <div id="file-list"></div>
+
+    </div>
+
+
+    <script>
+
+        const imageInput = document.getElementById("imageInput");
+
+        const preview = document.getElementById("preview");
+
+        const message = document.getElementById("message");
+
+        const fileList = document.getElementById("file-list");
+
+
+        // ==========================================
+        // SHOW LOCAL IMAGE PREVIEW
+        // ==========================================
+
+        imageInput.addEventListener("change", function () {
+
+            const file = imageInput.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            preview.src = URL.createObjectURL(file);
+
+            preview.style.display = "block";
+        });
+
+
+        // ==========================================
+        // UPLOAD IMAGE
+        // ==========================================
+
+        async function uploadImage() {
+
+            const file = imageInput.files[0];
+
+
+            if (!file) {
+
+                message.innerText =
+                    "Please choose an image first.";
+
+                return;
+            }
+
+
+            // Create FormData
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+
+
+            message.innerText = "Uploading...";
+
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/upload",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Upload failed"
+                    );
+                }
+
+
+                const data = await response.json();
+
+
+                console.log("Upload response:", data);
+
+
+                message.innerText =
+                    "Upload successful!";
+
+
+                // Reload images
+
+                getFiles();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+                message.innerText =
+                    "Something went wrong.";
+            }
+        }
+
+
+        // ==========================================
+        // GET IMAGES FROM FASTAPI
+        // ==========================================
+
+        async function getFiles() {
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/files"
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Could not get files"
+                    );
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                console.log("Files:", data);
+
+
+                // Clear old images
+
+                fileList.innerHTML = "";
+
+
+                // Display every image
+
+                data.files.forEach(file => {
+
+                    const div =
+                        document.createElement("div");
+
+
+                    div.className = "file";
+
+
+                    div.innerHTML = `
+                        <p>${file["Original Name"]}</p>
+
+                        <img
+                            src="${file["File URL"]}"
+                            alt="${file["Original Name"]}"
+                        >
+                    `;
+
+
+                    fileList.appendChild(div);
+
+                });
+
+
+            } catch (error) {
+
+                console.error(
+                    "Error loading files:",
+                    error
+                );
+
+            }
+        }
+
+
+        // ==========================================
+        // LOAD EXISTING IMAGES WHEN PAGE OPENS
+        // ==========================================
+
+        getFiles();
+
+    </script>
+
+</body>
+
+</html>
